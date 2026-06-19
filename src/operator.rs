@@ -183,8 +183,8 @@ where
                     .map_err(map_finalizer_error::<W::Error>)
                 }
             },
-            move |_cr, _err, _ctl| {
-                warn!(backoff = ?error_backoff, "operator reconcile failed");
+            move |_cr, err, _ctl| {
+                warn!(backoff = ?error_backoff, error = %err, "operator reconcile failed");
                 Action::requeue(error_backoff)
             },
             Arc::new(k8s.client().clone()),
