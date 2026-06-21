@@ -9,9 +9,11 @@ pub use operator::{Operator, OperatorSpec, RuntimeSettings};
 pub use resources::ResourcesExt;
 pub use store::{StoreExt, StoreHandle};
 pub use workflow::{
-    Component, ComponentExt, Graph, GraphError, NodeKey, NodeState, Reconciler,
+    Component, Graph, GraphError, NodeKey, NodeState, Reconciler,
     ReconcilerMetaError, Scheduler, Workflow, WorkflowError,
 };
+
+pub use ech_k8s_derive::Component;
 
 use kube::api::Api;
 use thiserror::Error;

@@ -1,7 +1,7 @@
 use async_trait::async_trait;
 use serde::{Deserialize, Serialize};
 use std::collections::{BTreeMap, HashMap, HashSet};
-use std::{any::TypeId, error::Error as StdError, fmt::Write};
+use std::{any::TypeId, error::Error as StdError};
 use thiserror::Error;
 
 use crate::K8sClient;
@@ -55,82 +55,20 @@ pub trait Reconciler: Send + Sync + 'static {
 
 pub trait Component: Clone + Serialize + Send + Sync + 'static {
     const NAME: &'static str;
+
+    fn instance_name(&self, owner: impl AsRef<str>) -> Result<String, ReconcilerMetaError>;
+
+    fn labels(
+        &self,
+        owner: impl AsRef<str>,
+    ) -> Result<BTreeMap<String, String>, ReconcilerMetaError>;
+
+    fn selector(owner: impl AsRef<str>) -> String;
 }
 
 #[derive(Debug, Error)]
 #[error("failed to serialize for component meta: {0}")]
 pub struct ReconcilerMetaError(#[from] serde_json::Error);
-
-pub trait ComponentExt: Component {
-    fn instance_name(&self, owner: impl AsRef<str>) -> Result<String, ReconcilerMetaError> {
-        let mut name = format!("{}-{}", owner.as_ref(), Self::NAME);
-        let value = serde_json::to_value(self)?;
-        if !value.is_null() {
-            let mut parts = Vec::new();
-            collect_values(&value, &mut parts);
-            for part in parts {
-                let _ = write!(&mut name, "-{part}");
-            }
-        }
-        Ok(name)
-    }
-
-    fn labels(
-        &self,
-        owner: impl AsRef<str>,
-    ) -> Result<BTreeMap<String, String>, ReconcilerMetaError> {
-        let mut labels = BTreeMap::from([
-            ("ech.bz/owner".into(), owner.as_ref().to_string()),
-            ("ech.bz/component".into(), Self::NAME.to_string()),
-        ]);
-        collect_labels(&serde_json::to_value(self)?, &mut labels);
-        Ok(labels)
-    }
-
-    fn selector(owner: impl AsRef<str>) -> String {
-        format!(
-            "ech.bz/owner={},ech.bz/component={}",
-            owner.as_ref(),
-            Self::NAME,
-        )
-    }
-}
-impl<T: Component> ComponentExt for T {}
-
-fn collect_labels(value: &serde_json::Value, labels: &mut BTreeMap<String, String>) {
-    match value {
-        serde_json::Value::Object(map) => {
-            for (k, v) in map {
-                labels.insert(format!("ech.bz/{k}"), v.to_string());
-            }
-        }
-        serde_json::Value::Array(arr) => {
-            for v in arr {
-                collect_labels(v, labels);
-            }
-        }
-        _ => {}
-    }
-}
-
-fn collect_values(value: &serde_json::Value, out: &mut Vec<String>) {
-    match value {
-        serde_json::Value::Object(map) => {
-            let mut keys: Vec<&String> = map.keys().collect();
-            keys.sort();
-            for k in keys {
-                collect_values(&map[k], out);
-            }
-        }
-        serde_json::Value::Array(arr) => {
-            for v in arr {
-                collect_values(v, out);
-            }
-        }
-        serde_json::Value::String(s) => out.push(s.clone()),
-        other => out.push(other.to_string()),
-    }
-}
 
 #[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
