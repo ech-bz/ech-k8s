@@ -37,8 +37,7 @@ pub trait StoreExt {
     async fn store_put(
         &self,
         name: impl AsRef<str> + Send + Sync,
-        key: impl AsRef<str> + Send + Sync,
-        value: impl Into<String> + Send,
+        data: BTreeMap<String, String>,
         labels: Option<BTreeMap<String, String>>,
     ) -> Result<(), kube::Error>;
 
@@ -53,8 +52,7 @@ impl<'a> StoreExt for NamespacedApi<'a, ConfigMap> {
     async fn store_put(
         &self,
         name: impl AsRef<str> + Send + Sync,
-        key: impl AsRef<str> + Send + Sync,
-        value: impl Into<String> + Send,
+        data: BTreeMap<String, String>,
         labels: Option<BTreeMap<String, String>>,
     ) -> Result<(), kube::Error> {
         let namespace = self.namespace_str().ok_or_else(|| {
@@ -64,7 +62,7 @@ impl<'a> StoreExt for NamespacedApi<'a, ConfigMap> {
         })?;
         let config_map = ConfigMap {
             metadata: metadata(name.as_ref(), namespace, labels),
-            data: Some(BTreeMap::from([(key.as_ref().to_string(), value.into())])),
+            data: Some(data),
             ..Default::default()
         };
         self.apply(name, &config_map).await
@@ -93,8 +91,7 @@ impl<'a> StoreExt for NamespacedApi<'a, Secret> {
     async fn store_put(
         &self,
         name: impl AsRef<str> + Send + Sync,
-        key: impl AsRef<str> + Send + Sync,
-        value: impl Into<String> + Send,
+        data: BTreeMap<String, String>,
         labels: Option<BTreeMap<String, String>>,
     ) -> Result<(), kube::Error> {
         let namespace = self.namespace_str().ok_or_else(|| {
@@ -104,7 +101,7 @@ impl<'a> StoreExt for NamespacedApi<'a, Secret> {
         })?;
         let secret = Secret {
             metadata: metadata(name.as_ref(), namespace, labels),
-            string_data: Some(BTreeMap::from([(key.as_ref().to_string(), value.into())])),
+            string_data: Some(data),
             type_: Some("Opaque".into()),
             ..Default::default()
         };
