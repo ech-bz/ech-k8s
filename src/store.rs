@@ -6,11 +6,11 @@ use k8s_openapi::{
 use serde::de::Error as _;
 use std::collections::BTreeMap;
 
-fn metadata(name: &str, namespace: &str, labels: Option<BTreeMap<String, String>>) -> ObjectMeta {
+fn metadata(name: &str, namespace: &str, labels: BTreeMap<String, String>) -> ObjectMeta {
     ObjectMeta {
         name: Some(name.to_string()),
         namespace: Some(namespace.to_string()),
-        labels,
+        labels: Some(labels),
         ..Default::default()
     }
 }
@@ -37,8 +37,8 @@ pub trait StoreExt {
     async fn store_put(
         &self,
         name: impl AsRef<str> + Send + Sync,
+        labels: BTreeMap<String, String>,
         data: BTreeMap<String, String>,
-        labels: Option<BTreeMap<String, String>>,
     ) -> Result<(), kube::Error>;
 
     async fn store_load(
@@ -52,8 +52,8 @@ impl<'a> StoreExt for NamespacedApi<'a, ConfigMap> {
     async fn store_put(
         &self,
         name: impl AsRef<str> + Send + Sync,
+        labels: BTreeMap<String, String>,
         data: BTreeMap<String, String>,
-        labels: Option<BTreeMap<String, String>>,
     ) -> Result<(), kube::Error> {
         let namespace = self.namespace_str().ok_or_else(|| {
             kube::Error::SerdeError(serde_json::Error::custom(
@@ -91,8 +91,8 @@ impl<'a> StoreExt for NamespacedApi<'a, Secret> {
     async fn store_put(
         &self,
         name: impl AsRef<str> + Send + Sync,
+        labels: BTreeMap<String, String>,
         data: BTreeMap<String, String>,
-        labels: Option<BTreeMap<String, String>>,
     ) -> Result<(), kube::Error> {
         let namespace = self.namespace_str().ok_or_else(|| {
             kube::Error::SerdeError(serde_json::Error::custom(

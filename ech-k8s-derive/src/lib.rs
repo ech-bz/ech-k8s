@@ -81,10 +81,10 @@ fn expand_component(input: DeriveInput) -> syn::Result<proc_macro2::TokenStream>
         }
     };
 
-    let instance_fields: Vec<_> = ordered.iter().map(|(kind, accessor)| {
+    let fields: Vec<_> = ordered.iter().map(|(kind, accessor)| {
         match kind {
             FieldKind::Comp => quote! {
-                name = (#accessor).instance_name(name)?;
+                name = (#accessor).name(name);
             },
             FieldKind::Value => quote! {
                 name.push('-');
@@ -93,12 +93,12 @@ fn expand_component(input: DeriveInput) -> syn::Result<proc_macro2::TokenStream>
         }
     }).collect();
 
-    let instance_name_body = quote! {
+    let name_body = quote! {
         let mut name = owner.as_ref().to_string();
         name.push('-');
         name.push_str(Self::NAME);
-        #(#instance_fields)*
-        Ok(name)
+        #(#fields)*
+        name
     };
 
     let labels_body = quote! {
@@ -112,24 +112,24 @@ fn expand_component(input: DeriveInput) -> syn::Result<proc_macro2::TokenStream>
                 (#value_fields).to_string(),
             );
         )*
-        Ok(labels)
+        labels
     };
 
     let expanded = quote! {
         impl #impl_generics ::ech_k8s::Component for #struct_name #ty_generics #where_clause {
             const NAME: &'static str = #name_attr;
 
-            fn instance_name(
+            fn name(
                 &self,
                 owner: impl AsRef<str>,
-            ) -> ::std::result::Result<String, ::ech_k8s::ReconcilerMetaError> {
-                #instance_name_body
+            ) -> String {
+                #name_body
             }
 
             fn labels(
                 &self,
                 owner: impl AsRef<str>,
-            ) -> ::std::result::Result<::std::collections::BTreeMap<String, String>, ::ech_k8s::ReconcilerMetaError> {
+            ) -> ::std::collections::BTreeMap<String, String> {
                 #labels_body
             }
 

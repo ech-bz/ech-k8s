@@ -9,8 +9,8 @@ pub use operator::{Operator, OperatorSpec, RuntimeSettings};
 pub use resources::ResourcesExt;
 pub use store::{StoreExt, StoreHandle};
 pub use workflow::{
-    Component, Graph, GraphError, NodeKey, NodeState, Reconciler,
-    ReconcilerMetaError, Scheduler, Workflow, WorkflowError,
+    Component, Graph, GraphError, NodeKey, NodeState, Reconciler, ReconcilerMetaError, Scheduler,
+    Workflow, WorkflowError,
 };
 
 pub use ech_k8s_derive::Component;
@@ -65,11 +65,10 @@ impl K8sClient {
         T: kube::Resource<Scope = kube::core::NamespaceResourceScope>,
         <T as kube::Resource>::DynamicType: Default,
     {
-        let namespace = namespace.as_ref();
         NamespacedApi {
             client: self,
-            api: Api::namespaced(self.client.clone(), namespace),
-            namespace: Some(namespace.to_string()),
+            api: Api::namespaced(self.client.clone(), namespace.as_ref()),
+            namespace: Some(namespace.as_ref().to_string()),
         }
     }
 

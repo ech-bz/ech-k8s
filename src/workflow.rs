@@ -53,16 +53,11 @@ pub trait Reconciler: Send + Sync + 'static {
     }
 }
 
-pub trait Component: Clone + Serialize + Send + Sync + 'static {
+pub trait Component: Clone + Copy + Serialize + Send + Sync + 'static {
     const NAME: &'static str;
 
-    fn instance_name(&self, owner: impl AsRef<str>) -> Result<String, ReconcilerMetaError>;
-
-    fn labels(
-        &self,
-        owner: impl AsRef<str>,
-    ) -> Result<BTreeMap<String, String>, ReconcilerMetaError>;
-
+    fn name(&self, owner: impl AsRef<str>) -> String;
+    fn labels(&self, owner: impl AsRef<str>) -> BTreeMap<String, String>;
     fn selector(owner: impl AsRef<str>) -> String;
 }
 
